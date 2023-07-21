@@ -28,7 +28,7 @@ class BunnyWindow(QtWidgets.QDialog):
         #self.setStyleSheet("BunnyWindow {border: 3px solid rgb(150, 150, 45)}")
 
         # set size of the window
-        self.setMinimumSize(500, 200)
+        self.setMinimumSize(250, 100)
         self.setMaximumSize(700, 200)
         self.resize(500, 200)
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)  # window stays always on top
