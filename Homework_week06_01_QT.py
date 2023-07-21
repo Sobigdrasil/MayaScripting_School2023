@@ -1,32 +1,35 @@
 import maya.cmds as cmds
 from PySide2 import QtWidgets, QtCore, QtGui
 
-
 class BunnyWindow(QtWidgets.QDialog):
 
     def __init__(self):
-
+        #creates window for a work with simple objects
         super(BunnyWindow, self).__init__()  # super is important to call the main class
 
         # calling functions for a window creation
-        self.setup_ui()
-        self.object_name_window()
-        self.radio_buttons()
-        self.scale_slider_complete()
-        self.push_buttons()
-        self.checkboxes()
+        self.setup_ui() #main window and layouts
+        self.object_name_window() #text window for object naming
+        self.radio_buttons() #buttons for object creation
+        self.scale_slider_complete() #slider for object scaling
+        self.checkboxes() #put object on a layer or in a group
+        self.push_buttons() #main buttons: ok, apply, cancel
 
     def setup_ui(self):
+        '''
+        create a main window and all the layouts
+        :return: self.main_layout, self.radio_buttons_layout, self.slider_layout,
+                 self.slider_layout, self.checkbox_layout, self.buttons_layout
+        '''
         # create a name for the window
         self.setWindowTitle("_*Super Mega Poly Objects*_")
         self.setStyleSheet("BunnyWindow {background: rgb(75, 72, 101)}")
-        # self.setStyleSheet("BunnyWindowQtGui.QColor(255, 0, 0, 127)")
         # for borders you can use this ->
-        # self.setStyleSheet("BunnyWindow {border: 3px solid rgb(150, 150, 45)}")
+        #self.setStyleSheet("BunnyWindow {border: 3px solid rgb(150, 150, 45)}")
 
         # set size of the window
         self.setMinimumSize(500, 200)
-        self.setMaximumSize(700, 500)
+        self.setMaximumSize(700, 200)
         self.resize(500, 200)
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)  # window stays always on top
 
@@ -56,11 +59,22 @@ class BunnyWindow(QtWidgets.QDialog):
         self.main_layout.addLayout(self.buttons_layout)
 
     def object_name_window(self):
+        '''
+        creating a window for an object name
+        :return: self.object_name
+        '''
         self.object_name = QtWidgets.QLineEdit("ObjectName")
-        self.name_layout.addWidget(self.object_name)
-        self.object_name.textChanged.connect(lambda x: self.object_name.displayText())
+        self.name_layout.addWidget(self.object_name) #adding window on a layout
+        self.object_name.textChanged.connect(lambda x: self.object_name.displayText()) #ability to change text
+
+        self.object_name.setStyleSheet(
+            "QLineEdit { background-color: rgb(43, 41, 57); color: rgb(128, 123, 171) }")
 
     def radio_buttons(self):
+        '''
+        radio buttons for objects creation
+        :return: self.button_group_1, self.r_buttons_sphere, self.r_buttons_cube, self.r_buttons_cone
+        '''
         # let's create radio buttons
         self.button_group_1 = QtWidgets.QButtonGroup()
 
@@ -86,13 +100,18 @@ class BunnyWindow(QtWidgets.QDialog):
     def scale_slider_complete(self):
         '''
         creates slider that scales your mesh
-        :return:
+        :return: self.scale_slider, self.scale_numbers
         '''
         self.scale_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
-        self.scale_numbers = QtWidgets.QLineEdit()
+        self.scale_numbers= QtWidgets.QLineEdit()
 
-        self.scale_numbers.setFixedWidth(50) # Set the width to 150 pixels
-        self.scale_numbers.setFixedHeight(30) # Set the height to 30 pixels
+        self.scale_slider.setStyleSheet(
+            "QSlider { add-page:vertical; background: rgb(43, 41, 57); color: rgb(128, 123, 171); height: 10px}")
+        self.scale_numbers.setStyleSheet(
+            "QLineEdit { background-color: rgb(43, 41, 57); color: rgb(128, 123, 171) }")
+
+        self.scale_numbers.setFixedWidth(60)  # Set the width to 150 pixels
+        self.scale_numbers.setFixedHeight(30)  # Set the height to 30 pixels
 
         self.slider_layout.addWidget(self.scale_slider)
         self.slider_layout.addWidget(self.scale_numbers)
@@ -100,29 +119,19 @@ class BunnyWindow(QtWidgets.QDialog):
         self.scale_slider.setRange(0, 999)
 
         self.scale_numbers.setPlaceholderText("scale")
-        self.scale_numbers.setMaxLength(3)
+        self.scale_numbers.setMaxLength(2)
 
-        # When user tweaks using the slider
-        self.scale_slider.valueChanged[int].connect(self.update_scale_numbers)
-        # When user modify via the line edit
-        self.scale_numbers.editingFinished.connect(self.update_slider)
+        # Connect the valueChanged signal of the slider to the update_line_edit slot
+        self.scale_slider.valueChanged.connect(self.update_line_edit)
 
-        # Functions for each modification made towards slider and line edit
-
-    def update_slider(self, value):
-        # spinbox_value uses float/ doubles type
-        # '*100' is used to convert it into integer as QSlider
-        # only register integer type
-        self.scale_numbers.value() * 100
-        self.scale_slider.setSliderPosition(self.scale_numbers)
-        print(value)
-
-    def update_scale_numbers(self, value):
-        # QSlider only uses integer type
-        # Need to convert the value from integer into float
-        # and divides it by 100
-        self.scale_numbers.value = (float(value) / 100)
-        print(value)
+    def update_line_edit(self, value):
+        '''
+        Update the line edit text when the slider value changes, uses in self.scale_slider_complete()
+        :param value:
+        :return: self.scale_value
+        '''
+        self.scale_numbers.setText(str(value))
+        self.scale_value = value / 10
 
     def checkboxes(self):
         '''
@@ -131,14 +140,44 @@ class BunnyWindow(QtWidgets.QDialog):
         '''
         self.checkbox_layer = QtWidgets.QCheckBox("add on layer")
         self.checkbox_group = QtWidgets.QCheckBox("add in group")
+        
+        #variable that we use for unchecked style for checkboxes
+        status_unchecked = """
+            QCheckBox::indicator {
+                background-color: rgb(43, 41, 57);
+            }
+            QCheckBox {color: rgb(189, 183, 255)}
+        """
+        # setting color and style for checkboxes
+        self.checkbox_layer.setStyleSheet(status_unchecked)
+        self.checkbox_group.setStyleSheet(status_unchecked)
 
-        # setting color for checkboxes
-        self.checkbox_layer.setStyleSheet("QCheckBox {color: rgb(189, 183, 255)}")
-        self.checkbox_group.setStyleSheet("QCheckBox {color: rgb(189, 183, 255)}")
+        #assign the style when the checkbox is checked
+        self.checkbox_layer.stateChanged.connect(self.update_checkbox_state)
+        self.checkbox_group.stateChanged.connect(self.update_checkbox_state)
 
         # adding created checkboxes on a layer
         self.checkbox_layout.addWidget(self.checkbox_layer)
         self.checkbox_layout.addWidget(self.checkbox_group)
+
+    def update_checkbox_state(self):
+        '''
+        Update the checkbox appearance when the state changes
+        :return:
+        '''
+        #variable that we use for checked style for checkboxes
+        status_checked = """
+            QCheckBox::indicator {
+                background-color: rgb(43, 41, 57);
+            }
+            QCheckBox::indicator:checked {
+                background-color: rgb(189, 183, 255);
+                image: url(D:/tick_ui.png); /* image is 19px */
+            }
+            QCheckBox {color: rgb(189, 183, 255)}
+        """
+        self.checkbox_layer.setStyleSheet(status_checked)
+        self.checkbox_group.setStyleSheet(status_checked)
 
     def push_buttons(self):
         '''
@@ -181,7 +220,7 @@ class BunnyWindow(QtWidgets.QDialog):
         '''
         function that works on the APPLY button clicked
         it creates the stuff you asked for, that's it
-        :return:
+        :return: new_name
         '''
         # set the name for the object
         new_name = self.object_name.displayText()
@@ -204,8 +243,8 @@ class BunnyWindow(QtWidgets.QDialog):
         elif self.r_buttons_cone.isChecked():
             cmds.polyCone(name=new_name)
 
-        #slider scale
-
+        # slider scale
+        cmds.scale(self.scale_value, self.scale_value, self.scale_value)
 
         # checkbox for a layer
         if self.checkbox_layer.isChecked():
@@ -216,7 +255,7 @@ class BunnyWindow(QtWidgets.QDialog):
             cmds.group(name=new_name + "_group")
 
 
-# remove window of the script if it exists
+# remove window of the script if it exists in maya
 if cmds.window("BunnyWindow", query=True, exists=True):
     cmds.deleteUI("BunnyWindow")
 
