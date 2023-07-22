@@ -159,6 +159,8 @@ class BunnyWindow(QtWidgets.QDialog):
         status_unchecked = """
             QCheckBox::indicator {
                 background-color: rgb(43, 41, 57);
+                width:19px;
+                height:19px;
             }
             QCheckBox {color: rgb(189, 183, 255)}
         """
@@ -183,10 +185,14 @@ class BunnyWindow(QtWidgets.QDialog):
         status_checked = """
             QCheckBox::indicator {
                 background-color: rgb(43, 41, 57);
+                width:19px;
+                height:19px;
             }
             QCheckBox::indicator:checked {
                 background-color: rgb(189, 183, 255);
                 image: url(D:/tick_ui.png); /* image is 19px */
+                width:19px;
+                height:19px;
             }
             QCheckBox {color: rgb(189, 183, 255)}
         """
@@ -210,15 +216,15 @@ class BunnyWindow(QtWidgets.QDialog):
         self.button_apply.setStyleSheet(
             "QPushButton { background-color: rgb(43, 41, 57); color: rgb(128, 123, 171) }")
 
-        self.button_cancel = QtWidgets.QPushButton("Cancel")
-        self.button_cancel.clicked.connect(self.close)  # connecting button to function close
-        self.button_cancel.setStyleSheet(
+        self.button_close = QtWidgets.QPushButton("Close")
+        self.button_close.clicked.connect(self.close)  # connecting button to function close
+        self.button_close.setStyleSheet(
             "QPushButton { background-color: rgb(43, 41, 57); color: rgb(128, 123, 171) }")
 
         # let's add buttons in the layout
         self.buttons_layout.addWidget(self.button_ok)
         self.buttons_layout.addWidget(self.button_apply)
-        self.buttons_layout.addWidget(self.button_cancel)
+        self.buttons_layout.addWidget(self.button_close)
 
     def on_button_ok_clicked(self):
         '''
@@ -268,10 +274,11 @@ class BunnyWindow(QtWidgets.QDialog):
         if self.checkbox_group.isChecked():
             cmds.group(name=new_name + "_group")
 
+
     def delete_ui(self):
         '''
         remove window of the script if it exists in maya
-        :return:  
+        :return:
         '''
         if cmds.window("BunnyWindow", query=True, exists=True):
             cmds.deleteUI("BunnyWindow")
