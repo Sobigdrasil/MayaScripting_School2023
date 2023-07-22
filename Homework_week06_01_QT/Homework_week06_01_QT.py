@@ -14,6 +14,7 @@ class BunnyWindow(QtWidgets.QDialog):
         self.scale_slider_complete() #slider for object scaling
         self.checkboxes() #put object on a layer or in a group
         self.push_buttons() #main buttons: ok, apply, cancel
+        self.delete_ui() #delete window and prefs
 
     def setup_ui(self):
         '''
@@ -267,13 +268,16 @@ class BunnyWindow(QtWidgets.QDialog):
         if self.checkbox_group.isChecked():
             cmds.group(name=new_name + "_group")
 
+    def delete_ui(self):
+        '''
+        remove window of the script if it exists in maya
+        :return:  
+        '''
+        if cmds.window("BunnyWindow", query=True, exists=True):
+            cmds.deleteUI("BunnyWindow")
 
-# remove window of the script if it exists in maya
-if cmds.window("BunnyWindow", query=True, exists=True):
-    cmds.deleteUI("BunnyWindow")
+        if cmds.windowPref("BunnyWindow", exists=True):
+            cmds.windowPref("BunnyWindow", remove=True)
 
-if cmds.windowPref("BunnyWindow", exists=True):
-    cmds.windowPref("BunnyWindow", remove=True)
-
-a = BunnyWindow()
-a.show()
+main = BunnyWindow()
+main.show()
