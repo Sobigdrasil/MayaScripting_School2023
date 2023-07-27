@@ -19,20 +19,21 @@ button_style = """
     }
     """
 
-
-
 class SelectionWidget(QtWidgets.QWidget):
     buttonSignal = QtCore.Signal(str)  # create a static attribute
+    selectionClicked = QtCore.Signal(list)   # Create a custom signal to select the set
 
-    def __init__(self):
+    def __init__(self, objects, count):
         super(SelectionWidget, self).__init__()
+
+        self.objects = objects
+        self.state = True
+        self.count = count
 
         self.selection = []
         self.get_selection()
-        self.create_selection_list = {}
-        self.i = 0
 
-        self.object_path = cmds.ls(sl=True, l=True)
+        self.object_path = self.get_selection()
         self.display_name = [obj.split("|")[-1] for obj in self.selection] #to display a short name
 
         self.setup_ui()
@@ -66,6 +67,9 @@ class SelectionWidget(QtWidgets.QWidget):
         names_str = ", ".join(self.display_name)
         self.short_names_label.setText(names_str)
 
+    def select_objects_back(self):
+        cmds.select(self.objects)
+
     def set_background(self, r=60, g=60, b=60):
         # set background
         self.p = QtGui.QPalette()
@@ -78,8 +82,8 @@ class SelectionWidget(QtWidgets.QWidget):
         self.p.setColor(self.backgroundRole(), QtGui.QColor(90, 90, 90))
         self.setPalette(self.p)
 
-        # if self.state == True:
-        #     self.run_selection()
+        if self.state == True:
+            self.select_objects_back()
 
     def enterEvent(self, event):
         self.setCursor(QtCore.Qt.PointingHandCursor)
@@ -146,7 +150,6 @@ class PlusSelectionWidget(QtWidgets.QWidget):
 
     def __init__(self):
         super(PlusSelectionWidget, self).__init__()
-
         self.setup_ui()
 
     def setup_ui(self):
@@ -215,6 +218,11 @@ class SelectionToolWindow(QtWidgets.QDialog):
         #creates window for a work with selection sets
         super(SelectionToolWindow, self).__init__()  # super is important to call the main class
 
+        self.selection = []
+        self.get_selection()
+        self.create_selection_list = {}
+        self.num = 1
+
         self.setup_ui() #main window and layouts
     def setup_ui(self):
         self.setWindowTitle("Custom Bunny UI")
@@ -261,11 +269,21 @@ class SelectionToolWindow(QtWidgets.QDialog):
 
     def on_widget_clicked(self):
         # self.get_selection()
+        self.get_selection()
         self.add_selection_widget()
 
+    def get_selection(self):
+        self.selection = cmds.ls(sl=1, l=1)
+
     def add_selection_widget(self):
-        self.selection_set_wgt = SelectionWidget()
-        self.scroll_layout.addWidget(self.selection_set_wgt)
+        self.selection_widget = SelectionWidget(self.selection, self.num)
+        self.create_selection_list[self.num] = self.selection_widget
+        self.num = self.num + 1
+        self.scroll_layout.addWidget(self.selection_widget)
+        #self.selection_widget.selectionClicked.connect(self.select_objects)
+
+    def select_objects(self, objects):
+        cmds.select(objects)
 
 
 def main():
