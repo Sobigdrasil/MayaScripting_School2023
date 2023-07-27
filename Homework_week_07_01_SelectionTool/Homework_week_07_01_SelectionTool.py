@@ -19,20 +19,21 @@ button_style = """
     }
     """
 
-class MyChildDialog(QtWidgets.QWidget):
+
+
+class SelectionWidget(QtWidgets.QWidget):
     buttonSignal = QtCore.Signal(str)  # create a static attribute
 
     def __init__(self):
-        super(MyChildDialog, self).__init__()
+        super(SelectionWidget, self).__init__()
 
-        # self.object_path = object_path
-        # self.display_name = self.object_path.split("|")[-1] #to display a short name
+        self.selection = []
+        self.get_selection()
+        self.create_selection_list = {}
+        self.i = 0
 
-        self.setup_ui()
-
-class PlusSelectionWidget(QtWidgets.QWidget):
-    def __init__(self):
-        super(PlusSelectionWidget, self).__init__()
+        self.object_path = cmds.ls(sl=True, l=True)
+        self.display_name = [obj.split("|")[-1] for obj in self.selection] #to display a short name
 
         self.setup_ui()
 
@@ -51,16 +52,19 @@ class PlusSelectionWidget(QtWidgets.QWidget):
         self.setLayout(self.main_layout)
 
         #text on the widget
-        self.plus_label = QtWidgets.QLabel("+")
-        self.main_layout.addWidget(self.plus_label)
-        self.plus_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.plus_label.setStyleSheet(''' font-size: 24px; ''')
+        self.short_names_label = QtWidgets.QLabel()
+        self.update_short_names_label()  # Update the label text with the short names
+        self.main_layout.addWidget(self.short_names_label)
+        self.short_names_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.short_names_label.setStyleSheet(''' font-size: 12px; ''')
 
-    def run_selection(self):
-        self.chld = MyChildDialog()
-        self.child_layout = QtWidgets.QHBoxLayout()
-        #TODO write the proper layout for the new button
-        self.chld.setLayout(self.child_layout)
+    def get_selection(self):
+        self.selection = cmds.ls(sl=True, l=True)
+
+    def update_short_names_label(self):
+        # Convert the list of short names to a single string with comma separator
+        names_str = ", ".join(self.display_name)
+        self.short_names_label.setText(names_str)
 
     def set_background(self, r=60, g=60, b=60):
         # set background
@@ -74,8 +78,8 @@ class PlusSelectionWidget(QtWidgets.QWidget):
         self.p.setColor(self.backgroundRole(), QtGui.QColor(90, 90, 90))
         self.setPalette(self.p)
 
-        if self.state == True:
-            self.run_selection()
+        # if self.state == True:
+        #     self.run_selection()
 
     def enterEvent(self, event):
         self.setCursor(QtCore.Qt.PointingHandCursor)
@@ -135,8 +139,62 @@ class PlusSelectionWidget(QtWidgets.QWidget):
         print("TEST B")
 
     def delete_selection(self):
-        cmds.delete(self.object_path)
         self.deleteLater()  # to delete widget
+
+class PlusSelectionWidget(QtWidgets.QWidget):
+    clicked = QtCore.Signal() # Define a custom clicked signal
+
+    def __init__(self):
+        super(PlusSelectionWidget, self).__init__()
+
+        self.setup_ui()
+
+    def setup_ui(self):
+
+        self.setMinimumSize(228,90)
+        self.setMaximumHeight(90)
+
+        self.setAutoFillBackground(True) #to set color we need this
+
+        #set color
+        self.set_background()
+
+        #layout
+        self.main_layout = QtWidgets.QHBoxLayout()
+        self.setLayout(self.main_layout)
+
+        #text on the widget
+        self.plus_label = QtWidgets.QLabel("+")
+        self.main_layout.addWidget(self.plus_label)
+        self.plus_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.plus_label.setStyleSheet(''' font-size: 24px; ''')
+
+        self.mousePressEvent = self.on_widget_clicked
+
+    def on_widget_clicked(self, event):
+        # Emit the custom clicked signal when the widget is clicked
+        self.clicked.emit()
+
+    def set_background(self, r=60, g=60, b=60):
+        # set background
+        self.p = QtGui.QPalette()
+        self.color = QtGui.QColor(r, g, b)
+        self.p.setColor(self.backgroundRole(), self.color)
+        self.setPalette(self.p)
+
+    def enterEvent(self, event):
+        self.setCursor(QtCore.Qt.PointingHandCursor)
+        self.set_background(80, 80, 80)
+
+    def leaveEvent(self, event):
+        self.setCursor(QtCore.Qt.ArrowCursor)
+        self.set_background(60, 60, 60)
+
+    def mouseReleaseEvent(self, event):
+        self.p = self.palette()
+        self.p.setColor(self.backgroundRole(), QtGui.QColor(80, 80, 80))
+        self.setPalette(self.p)
+
 
 scroll_style = """
     QScrollBar:vertical {
@@ -154,14 +212,9 @@ scroll_style = """
 class SelectionToolWindow(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
-        #creates window for a work with simple objects
+        #creates window for a work with selection sets
         super(SelectionToolWindow, self).__init__()  # super is important to call the main class
 
-        # calling functions for a window creation
-        self.selection = []
-        self.get_selection()
-        self.create_selection_list = {}
-        self.i = 0
         self.setup_ui() #main window and layouts
     def setup_ui(self):
         self.setWindowTitle("Custom Bunny UI")
@@ -202,34 +255,18 @@ class SelectionToolWindow(QtWidgets.QDialog):
         self.main_layout.addWidget(self.scroll_area)
         #* -------------------------------------------------------------- *#
 
-        self.object_wgt = PlusSelectionWidget()
-        self.scroll_layout.addWidget(self.object_wgt)
+        self.plus_button = PlusSelectionWidget()
+        self.scroll_layout.addWidget(self.plus_button)
+        self.plus_button.clicked.connect(self.on_widget_clicked)
 
-        #create custom widgets in a cycle
-        #self.populate_selection()
+    def on_widget_clicked(self):
+        # self.get_selection()
+        self.add_selection_widget()
 
-    # def on_button_update_clicked(self):
-    #     if self.scroll_layout.count():  # if layout has any children
-    #         for i in range(self.scroll_layout.count()):  # [0,1,2,3,4]
-    #             item = self.scroll_layout.itemAt(i)
-    #             widget = item.widget()
-    #             if widget:
-    #                 widget.deleteLater()
-    #
-    #     self.get_selection()
-    #
-    #     # create custom widgets in a cycle
-    #     self.populate_selection()
+    def add_selection_widget(self):
+        self.selection_set_wgt = SelectionWidget()
+        self.scroll_layout.addWidget(self.selection_set_wgt)
 
-    def get_selection(self):
-        self.selection = cmds.ls(sl=True, l=True)
-        # [u'|group4|group3|group2|group1|pSphere2', u'|pSphere4', u'|pSphere3', u'|pSphere1']
-
-    # def populate_selection(self):
-    #     # create custom widgets in a cycle
-    #     for i in self.selection:
-    #         self.object_wgt = PlusSelectionWidget(i)
-    #         self.scroll_layout.addWidget(self.object_wgt)
 
 def main():
     if cmds.window("MyCustomWidgetBunny", query=True, exists=True):
