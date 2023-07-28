@@ -150,7 +150,6 @@ class SelectionWidget(QtWidgets.QWidget):
         for obj in self.selection:
             if obj in self.objects:
                 self.objects.remove(obj)
-        print("Objects have been removed from set")
 
     def rename_selection(self):
         self.short_names_label.setFocus()
