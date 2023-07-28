@@ -1,23 +1,18 @@
 import maya.cmds as cmds
 from PySide2 import QtWidgets, QtCore, QtGui
 
+scroll_style = """
+    QScrollBar:vertical {
+        background: rgb(10,10,10);
+        width: 5px;
+        margin: 0px 0 0px 0;
+        }
 
-button_style = """
-    QPushButton#MyCustomButtonWidgetID{
-        background-color: rgb(109,113,168);
-        border-radius: 10px;
-        min-width: 30px;
-        min-height: 30px;
-        font-weight: 900;
-
-
-    }
-    QPushButton#MyCustomButtonWidgetID:hover {
-        background-color: rgb(255,133,198);
-        min-width: 30px;
-        min-height: 30px;  
-    }
-    """
+    QScrollBar::handle:vertical {
+        border: 1px rgb(0, 0, 0);
+        background: rgb(128, 123, 171);
+        }
+"""
 
 class SelectionWidget(QtWidgets.QWidget):
     buttonSignal = QtCore.Signal(str)  # create a static attribute
@@ -27,8 +22,8 @@ class SelectionWidget(QtWidgets.QWidget):
         super(SelectionWidget, self).__init__()
 
         self.objects = objects
-        self.state = True
         self.count = count
+        self.state = True
 
         self.selection = []
         self.get_selection()
@@ -50,14 +45,25 @@ class SelectionWidget(QtWidgets.QWidget):
 
         #layout
         self.main_layout = QtWidgets.QHBoxLayout()
+        self.setContentsMargins(5, 0, 5, 0)
         self.setLayout(self.main_layout)
 
         #text on the widget
-        self.short_names_label = QtWidgets.QLabel()
+        self.short_names_label = QtWidgets.QLineEdit()
+        self.short_names_label.textChanged.connect(lambda x: self.short_names_label.displayText())
+        self.short_names_label.setReadOnly(True)  # Set the QLineEdit as read-only initially
+        # self.short_names_label.returnPressed.connect(lambda z: self.short_names_label.setReadOnly(True))
+
+        self.short_names_label.setStyleSheet(
+            "QLineEdit { "
+            "border: 0px;"
+            "background-color: rgb(60, 60, 60); "
+            "color: rgb(128, 123, 171);"
+            "font-size: 16px;  "
+            "}")
         self.update_short_names_label()  # Update the label text with the short names
         self.main_layout.addWidget(self.short_names_label)
         self.short_names_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.short_names_label.setStyleSheet(''' font-size: 12px; ''')
 
     def get_selection(self):
         self.selection = cmds.ls(sl=True, l=True)
@@ -134,13 +140,26 @@ class SelectionWidget(QtWidgets.QWidget):
 
 
     def add_selection(self):
-        print("TEST A")
+        self.selection = cmds.ls(sl=True, l=True)
+        for obj in self.selection:
+            if obj not in self.objects:
+                self.objects.append(obj)
 
     def remove_selection(self):
-        print("TEST A")
+        self.selection = cmds.ls(sl=True, l=True)
+        for obj in self.selection:
+            if obj in self.objects:
+                self.objects.remove(obj)
+        print("Objects have been removed from set")
 
     def rename_selection(self):
-        print("TEST B")
+        self.short_names_label.setFocus()
+        self.short_names_label.setReadOnly(False)
+        self.short_names_label.editingFinished.connect(self.finish_editing)
+
+    def finish_editing(self):
+        self.short_names_label.setReadOnly(True)
+        self.setFocus()
 
     def delete_selection(self):
         self.deleteLater()  # to delete widget
@@ -156,14 +175,10 @@ class PlusSelectionWidget(QtWidgets.QWidget):
 
         self.setMinimumSize(228,90)
         self.setMaximumHeight(90)
-
         self.setAutoFillBackground(True) #to set color we need this
-
-        #set color
-        self.set_background()
-
-        #layout
+        self.set_background() #set color
         self.main_layout = QtWidgets.QHBoxLayout()
+        self.setContentsMargins(5, 0, 5, 0)
         self.setLayout(self.main_layout)
 
         #text on the widget
@@ -172,7 +187,23 @@ class PlusSelectionWidget(QtWidgets.QWidget):
         self.plus_label.setAlignment(QtCore.Qt.AlignCenter)
         self.plus_label.setStyleSheet(''' font-size: 24px; ''')
 
-        self.mousePressEvent = self.on_widget_clicked
+    def mouseReleaseEvent(self, event):
+        self.p = self.palette()
+        self.p.setColor(self.backgroundRole(), QtGui.QColor(80, 80, 80))
+        self.setPalette(self.p)
+
+    def mousePressEvent(self, event):
+        self.p = self.palette()
+        self.p.setColor(self.backgroundRole(), QtGui.QColor(100, 100, 100))
+        self.setPalette(self.p)
+
+        # that's pretty important for mouseReleaseEvent on 44rd string
+        if event.button() == QtCore.Qt.LeftButton:
+            self.state = True
+            self.on_widget_clicked(event)
+
+        elif event.button() == QtCore.Qt.RightButton:
+            self.state = False  # we are blocking the button's pressing
 
     def on_widget_clicked(self, event):
         # Emit the custom clicked signal when the widget is clicked
@@ -193,24 +224,6 @@ class PlusSelectionWidget(QtWidgets.QWidget):
         self.setCursor(QtCore.Qt.ArrowCursor)
         self.set_background(60, 60, 60)
 
-    def mouseReleaseEvent(self, event):
-        self.p = self.palette()
-        self.p.setColor(self.backgroundRole(), QtGui.QColor(80, 80, 80))
-        self.setPalette(self.p)
-
-
-scroll_style = """
-    QScrollBar:vertical {
-        background: rgb(10,10,10);
-        width: 5px;
-        margin: 0px 0 0px 0;
-        }
-
-    QScrollBar::handle:vertical {
-        border: 1px rgb(0, 0, 0);
-        background: rgb(255, 85, 85);
-        }
-"""
 
 class SelectionToolWindow(QtWidgets.QDialog):
 
@@ -228,6 +241,7 @@ class SelectionToolWindow(QtWidgets.QDialog):
         self.setWindowTitle("Custom Bunny UI")
         self.setObjectName("MyCustomWidgetBunny")
         self.setMinimumSize(250,400)
+        self.setMaximumSize(250, 700)
         self.resize(300,500)
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
 
@@ -242,8 +256,8 @@ class SelectionToolWindow(QtWidgets.QDialog):
         self.scroll_area = QtWidgets.QScrollArea()
         self.scroll_area.setMinimumHeight(400)
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setMinimumWidth(290)
-        self.scroll_area.setMaximumWidth(500)
+        self.scroll_area.setMinimumWidth(250)
+        self.scroll_area.setMaximumWidth(250)
         self.scroll_area.setFocusPolicy(QtCore.Qt.NoFocus)
         #self.scroll_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
 
@@ -278,12 +292,12 @@ class SelectionToolWindow(QtWidgets.QDialog):
     def add_selection_widget(self):
         self.selection_widget = SelectionWidget(self.selection, self.num)
         self.create_selection_list[self.num] = self.selection_widget
-        self.num = self.num + 1
-        self.scroll_layout.addWidget(self.selection_widget)
-        #self.selection_widget.selectionClicked.connect(self.select_objects)
+        self.num =+ 1
 
-    def select_objects(self, objects):
-        cmds.select(objects)
+        self.scroll_layout.addWidget(self.selection_widget)
+
+    # def select_objects(self, objects):
+    #     cmds.select(objects)
 
 
 def main():
