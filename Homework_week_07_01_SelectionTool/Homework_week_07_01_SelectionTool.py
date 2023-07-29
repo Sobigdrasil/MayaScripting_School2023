@@ -1,5 +1,18 @@
 import maya.cmds as cmds
 from PySide2 import QtWidgets, QtCore, QtGui
+import maya.OpenMayaUI as OpenMayaUI # for maya_main_window()
+import shiboken2 #used to integrate C++ programs to Python
+
+def maya_main_window():
+    # To make our main window a child to maya so we can make it hover above maya
+	main_window_ptr=OpenMayaUI.MQtUtil.mainWindow()
+	return shiboken2.wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
+
+def deleteUI(my_ui):
+    if cmds.window(my_ui, exists=1):
+        cmds.deleteUI(my_ui)
+    if cmds.windowPref(my_ui, exists=1):
+        cmds.windowPref(my_ui, remove=1)
 
 scroll_style = """
     QScrollBar:vertical {
@@ -280,9 +293,9 @@ class PlusSelectionWidget(QtWidgets.QWidget):
 
 class SelectionToolWindow(QtWidgets.QDialog):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=maya_main_window()):
         #creates window for a work with selection sets
-        super(SelectionToolWindow, self).__init__()  # super is important to call the main class
+        super(SelectionToolWindow, self).__init__(parent=parent)  # super is important to call the main class
 
         #to create a selection set
         self.selection = []
@@ -314,8 +327,8 @@ class SelectionToolWindow(QtWidgets.QDialog):
         self.setWindowTitle("Custom Bunny UI")
         self.setObjectName("MyCustomWidgetBunny")
 
-        self.setMinimumSize(250,400)
-        self.setMaximumSize(250, 700)
+        self.setMinimumSize(250,250)
+        self.setMaximumSize(250, 900)
 
         self.main_layout = QtWidgets.QVBoxLayout()
         self.main_layout.setAlignment(QtCore.Qt.AlignTop)
@@ -349,7 +362,7 @@ class SelectionToolWindow(QtWidgets.QDialog):
 
         #adding plus widget
         self.plus_button = PlusSelectionWidget()
-        self.scroll_layout.addWidget(self.plus_button)
+        self.main_layout.addWidget(self.plus_button)
         self.plus_button.clicked.connect(self.on_widget_clicked)
 
     def mousePressEvent(self, event):
@@ -432,12 +445,8 @@ class SelectionToolWindow(QtWidgets.QDialog):
 
 #---------------------------------THE-END------------------------------------------
 
-if cmds.window("SelectionToolWindow", query=True, exists=True):
-   cmds.deleteUI("SelectionToolWindow")
-
-if cmds.windowPref("SelectionToolWindow", exists=True):
-   cmds.windowPref("SelectionToolWindow", remove=True)
-
+deleteUI("MyCustomWidgetBunny")
+global dialog
 #also creating var for close_window() and close_main_window()
 my_ui = SelectionToolWindow()
 my_ui.show()
