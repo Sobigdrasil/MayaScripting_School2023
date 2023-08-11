@@ -8,6 +8,8 @@ from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 json_path = "D:/"
 json_name = "DragAndDrop.json"
 
+GLOBAL_LIST = ["Button1", "Button2", "Button3", "Button4"]
+
 scroll_style = """
     QScrollBar:vertical {
         background: rgb(10,10,10);
@@ -28,11 +30,12 @@ class MyCustomWidget(MayaQWidgetDockableMixin, QtWidgets.QDockWidget):
         self.setDockableParameters(width=200)
         self.setFloating(False)
 
-        # self.json_data = {}
         self.json_path = json_path
         self.json_name = json_name
 
         self.setup_ui()
+
+        self.read_json()
 
     def setup_ui(self):
         self.setWindowTitle("Custom Bunny UI")
@@ -76,22 +79,41 @@ class MyCustomWidget(MayaQWidgetDockableMixin, QtWidgets.QDockWidget):
 
         # update button
         self.button_options = QtWidgets.QPushButton("Options")
-        self.button_options.clicked.connect(self.on_button_options_clicked)
+        self.button_options.clicked.connect(self.openOptionsUI)
         self.main_layout.addWidget(self.button_options)
 
-        # if os.path.exists(self.json_path + self.json_name):
-        #     self.json_data = self.read_json()
-        #     for i in self.json_data["w2"]:
-        #         widget = FieldWidget()
-        #         self.scroll_layout.addWidget(widget)
+    def read_json(self):
+
+        #clean up
+        if self.scroll_layout.count():
+            for i in range(self.scroll_layout.count()):
+                item = self.scroll_layout.itemAt(i)
+                widget = item.widget()
+                widget.deleteLater()
+
+        saved_json_data = []
+        if os.path.isfile("D:/DragAndDrop.json"):
+            with open("D:/" + "DragAndDrop.json", "r") as f:
+                saved_json_data = json.load(f)
+
+        #create buttons with right names with exec
+        for i in saved_json_data:
+            local_vars = {}
+            exec("button = {0}(label = '{0}')".format(i), None, local_vars)
+            button = local_vars['button']
+            self.scroll_layout.addWidget(button)
 
     def on_button_options_clicked(self):
-        myDragDropWnd.show()
+        self.my_ui.show()
 
-    def read_json(self):
-        with open("D:/" + "DragAndDrop.json", "r") as f:
-            saved_json_data = json.load(f)
-        return saved_json_data
+    def openOptionsUI(self):
+        if cmds.workspaceControl('MyCustomWidgetBunny', exists=True):
+            cmds.deleteUI('MyCustomWidgetBunny', control=True)
+            cmds.workspaceControlState('MyCustomWidgetBunny', remove=1)
+
+        self.my_ui = MyDDWnd(class_list=GLOBAL_LIST)
+        self.my_ui.MySignal.connect(self.read_json())
+        self.my_ui.show()
 
 
 class MyMIME(QtCore.QMimeData):
@@ -167,8 +189,30 @@ class ButtonWidget(QtWidgets.QWidget):
         Qt::MoveAction          0x2  (2)    Move the data from the source to the target.
         Qt::LinkAction          0x4  (4)    Create a link from the source to the target.
         """
-
-
+class Button1(ButtonWidget):
+    def __init__(self, parent=None, label="TEST"):
+        super(Button1, self).__init__(label=label)
+    def mousePressEvent(self, event):
+        print("ToolA")
+        super(Button1,self).mousePressEvent(event)
+class Button2(ButtonWidget):
+    def __init__(self, parent=None, label="TEST"):
+        super(Button2, self).__init__(label=label)
+    def mousePressEvent(self, event):
+        print("ToolA")
+        super(Button2,self).mousePressEvent(event)
+class Button3(ButtonWidget):
+    def __init__(self, parent=None, label="TEST"):
+        super(Button3, self).__init__(label=label)
+    def mousePressEvent(self, event):
+        print("ToolA")
+        super(Button3,self).mousePressEvent(event)
+class Button4(ButtonWidget):
+    def __init__(self, parent=None, label="TEST"):
+        super(Button4, self).__init__(label=label)
+    def mousePressEvent(self, event):
+        print("ToolA")
+        super(Button4,self).mousePressEvent(event)
 class FieldWidget(QtWidgets.QWidget):
     toolsSignal = QtCore.Signal(str)
 
@@ -208,22 +252,9 @@ class FieldWidget(QtWidgets.QWidget):
         self.scroll_area_widget.setLayout(self.scroll_layout)  # * -> scroll_layout
         self.main_tools_layout.addWidget(self.scrollArea)
 
-    def chosen_buttons(self, list):
-        for i in list:
-            tool = ButtonWidget(label=str(i))
-            self.scroll_layout.addWidget(tool)
-            self.buttonsList.append(i)
-
-    def feed_buttons(self):
-        # We will create Drag&Drop buttons here
-
-        for i in range(5):
-            button = ButtonWidget(label="Button_" + str(i))
-            self.scroll_layout.addWidget(button)
-            self.buttonsList.append("Button_" + str(i))
-
-    # def get_label_text(self):
-    #     return self.add_label
+    def create_widget(self, label):
+        button = ButtonWidget(label=label)
+        self.scroll_layout.addWidget(button)
 
     '''DRAG & DROP'''
 
@@ -250,28 +281,12 @@ class FieldWidget(QtWidgets.QWidget):
     def dragMoveEvent(self, e):
         e.acceptProposedAction()
 
-    def get_button_state(self):
-        button_states = []
-        widgets = []
-
-        for i in range(self.scroll_layout.count()):
-            item = self.scroll_layout.itemAt(i)
-            if item:
-                widget = item.widget()
-                if widget:
-                    widgets.append(widget)
-
-        for button in widgets:
-            label_text = button.label.text()
-            button_info = label_text
-            button_states.append(button_info)
-
-        return button_states
-
 class MyDDWnd(MayaQWidgetBaseMixin, QtWidgets.QDialog):
-
-    def __init__(self):
+    MySignal = QtCore.Signal(bool)
+    def __init__(self, class_list = []):
         super(MyDDWnd, self).__init__()
+
+        self.class_list = class_list
 
         self.json_data = {}
         self.json_path = json_path
@@ -290,8 +305,6 @@ class MyDDWnd(MayaQWidgetBaseMixin, QtWidgets.QDialog):
         self.tool_layout.addLayout(self.inner_tool_layout)
 
         self.first_list = FieldWidget()
-        self.first_list.feed_buttons()
-
         self.second_list = FieldWidget()
 
         self.inner_tool_layout.addWidget(self.first_list)
@@ -302,11 +315,31 @@ class MyDDWnd(MayaQWidgetBaseMixin, QtWidgets.QDialog):
         self.button_save.clicked.connect(self.save_to_json)
         self.tool_layout.addWidget(self.button_save)
 
+        self.read_json()
+
+    def read_json(self):
+        saved_json_data = []
+        if os.path.isfile("D:/DragAndDrop.json"):
+            with open("D:/" + "DragAndDrop.json", "r") as f:
+                saved_json_data = json.load(f)
+
+        for i in self.class_list:
+            if i in saved_json_data:
+                self.second_list.create_widget(label=i)
+            else:
+                self.first_list.create_widget(label=i)
+
     def save_to_json(self):
-        self.json_data["buttons"] = self.first_list.get_button_state()
-        self.json_data["chosen_buttons"] = self.second_list.get_button_state()
-        self.write_json(path=self.json_path, name=self.json_name)
-        print("JSON was saved")
+        self.json_data = []
+        self.MySignal.emit(True)
+        if self.second_list.scroll_layout.count():
+            for i in range(self.second_list.scroll_layout.count()):
+                item = self.second_list.scroll_layout.itemAt(i)
+                widget = item.widget()
+                label = widget.label.text()
+                self.json_data.append(label)
+                self.write_json(path=self.json_path, name=self.json_name)
+                print("JSON was saved")
 
     def write_json(self, path, name):
         # file_path = os.path.join(path, name)
@@ -314,12 +347,12 @@ class MyDDWnd(MayaQWidgetBaseMixin, QtWidgets.QDialog):
             f.write(json.dumps(self.json_data, indent=4, sort_keys=True))
 
 
+
 def main():
     if cmds.workspaceControl('MyCustomWidgetBunnyWorkspaceControl', exists=True):
         cmds.deleteUI('MyCustomWidgetBunnyWorkspaceControl', control=True)
         cmds.workspaceControlState('MyCustomWidgetBunnyWorkspaceControl', remove=1)
 
-    global my_ui
     my_ui = MyCustomWidget(json_path, json_name)
     my_ui.show(dockable=True, area='right', allowedArea='right', floating=True)
 
@@ -334,5 +367,4 @@ def main():
                           widthProperty="preferred")
 
 
-myDragDropWnd = MyDDWnd()
 main()
