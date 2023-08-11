@@ -1,0 +1,17 @@
+import re
+
+pattern = re.compile("s*[-+]?(?:1000000|[0-9][^a-z]\d{0,5})")
+
+file_path = 'D:/test.txt'
+
+def filtered_numbers(list_of_numbers):
+    for i in list_of_numbers:
+        yield i
+
+with open(file_path, 'r') as file:
+    text = file.read()
+    matches = re.findall(pattern, text)
+    filtered_matches = [match for match in matches if match]
+
+for i in filtered_numbers(filtered_matches):
+    print(i)
